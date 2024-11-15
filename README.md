@@ -1,2 +1,2 @@
-# Lightweight-Defence
-# Lightweight Defense Against Adversarial Attacks in Time Series Classification This is codes for 'Lightweight Defense Against Adversarial Attacks in Time Series Classification'.
+# Lightweight Defense Against Adversarial Attacks in Time Series Classification
+# This is code for 'Lightweight Defense Against Adversarial Attacks in Time Series Classification'.

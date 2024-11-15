@@ -16,43 +16,29 @@ for dataset_name in UNIVARIATE_DATASET_NAMES2:
     train_loader, test_loader, train_shape, test_shape, ucr_nb_classes = ucr_loader(dataset_name, batch_size=256)
     '''
     model = Classifier_INCEPTION(input_shape=train_shape, nb_classes=ucr_nb_classes).to(device)
-    # 选择损失函数和优化器
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters())
     for epoch in range(1000):
         model.train()
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
-            # 清零梯度
             optimizer.zero_grad()
-            
-            # 前向传播
             outputs = model(inputs)
-            
-            # 计算损失
             loss = criterion(outputs, labels)
-            
-            # 反向传播
             loss.backward()
-            
-            # 更新参数
             optimizer.step()
         
         print(f"Epoch {epoch+1}, Loss: {loss.item()}")
     torch.save(model.state_dict(), f"/Project/Yi/defense/OUTPUT/0/{dataset_name}_0_model_weights.pth")
-    #model.defense.print_method_usage()
     '''
-    # 重新创建模型实例并加载权重
-
-    # 重新创建模型实例并加载权重
     modelgn = ClassifierResNet18_with_gaussian_noise(input_shape=1, nb_classes=ucr_nb_classes, device=device).to(device)
     modelgn.load_state_dict(torch.load(f'/Project/Yi/defense/OUTPUT/res_gn/{dataset_name}_1_model_weights.pth'))
 
-    modelgn.eval()  # 将模型设置为评估模式
+    modelgn.eval() 
     modelj = ClassifierResNet18_with_Jitter(input_shape=1, nb_classes=ucr_nb_classes, device=device).to(device)
     modelj.load_state_dict(torch.load(f'/Project/Yi/defense/OUTPUT/res_jitter/{dataset_name}_1_model_weights.pth'))
 
-    modelj.eval()  # 将模型设置为评估模式
+    modelj.eval() 
     modelrz = ClassifierResNet18_with_RandomZero(input_shape=1, nb_classes=ucr_nb_classes, device=device).to(device)
     modelrz.load_state_dict(torch.load(f'/Project/Yi/defense/OUTPUT/res_rz/{dataset_name}_1_model_weights.pth'))
 
@@ -69,7 +55,7 @@ for dataset_name in UNIVARIATE_DATASET_NAMES2:
     model0.load_state_dict(torch.load(f'/Project/Yi/defense/OUTPUT/resnet/{dataset_name}_0_model_weights.pth'))
 
     model0.eval()
-    dataset_results = []  # 初始化一个空列表来保存当前数据集的结果
+    dataset_results = []  
     for i in range(5):
         
         all_labels = []
@@ -90,37 +76,30 @@ for dataset_name in UNIVARIATE_DATASET_NAMES2:
                 outputs_natural_0 = model0(inputs)
                 outputs_natural = (outputs_natural_gn+outputs_natural_j+outputs_natural_rz+outputs_natural_sz+outputs_natural_sts+outputs_natural_0)/6
                 _, predicted = torch.max(outputs_natural.data, 1)
-                # 将标签和预测添加到列表中
                 all_labels.extend(labels.cpu().numpy())
                 all_predictions.extend(predicted.cpu().numpy())
 
-        # 计算准确率和F1分数
         accuracy = accuracy_score(all_labels, all_predictions)
         f1 = f1_score(all_labels, all_predictions, average='weighted')
         dataset_results.append({
-            'Accuracy': accuracy * 100,  # 转换为百分比形式
+            'Accuracy': accuracy * 100,  
             'F1 Score': f1
         })
 
-    # 计算当前数据集的平均性能指标
     dataset_results_df = pd.DataFrame(dataset_results)
     mean_accuracy = dataset_results_df['Accuracy'].mean()
     mean_f1 = dataset_results_df['F1 Score'].mean()
 
-    # 将平均结果添加到总结果列表中
     results.append({
         'Dataset': dataset_name,
         'Average Accuracy': mean_accuracy,
         'Average F1 Score': mean_f1
     })
 
-# 将总结果列表转换为 DataFrame 并打印
 results_df = pd.DataFrame(results)
-# 定义 CSV 文件路径
+
 csv_file_path = '/Project/Yi/defense/OUTPUT/ensemble/resultsensembleres.csv'
 
-# 将 DataFrame 保存到 CSV 文件
-# 如果文件不存在，就创建一个新文件并写入，如果文件已存在，就追加到文件中
 if os.path.exists(csv_file_path):
     results_df.to_csv(csv_file_path, mode='a', header=False, index=False)
 else:

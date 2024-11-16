@@ -61,7 +61,6 @@ def folder_contains_files(folder_path, *file_names):
     except FileNotFoundError:
         return False
     file_names_set = set(file_names)
-    # 遍历文件名列表，检查是否都存在于文件夹中
     for file_name in file_names_set:
         if file_name not in folder_files:
             return False

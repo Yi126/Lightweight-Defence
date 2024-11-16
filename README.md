@@ -37,4 +37,7 @@ This paper explored defense methods specifically for time series data, designed 
 
 - files start with `attack`
   - implementation of white-box gradient-based attacks on the target models with different defense methods
-    
+
+## Before using the code
+
+- Install the required dependency: requirements.txt

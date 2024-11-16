@@ -44,7 +44,7 @@ class LSTMFCN(nn.Module):
         x = torch.cat((x_lstm, x_conv), dim=1)
         x = self.fc(x)
         return F.softmax(x, dim=1)
-    def entropy_loss(self, logits):#定义熵正则化项
+    def entropy_loss(self, logits):
         p = F.softmax(logits, dim=1)
         log_p = F.log_softmax(logits, dim=1)
         entropy = -torch.sum(p * log_p, dim=1).mean()
@@ -83,7 +83,7 @@ class LSTMFCN_Logits(nn.Module):
         x = torch.cat((x_lstm, x_conv), dim=1)
         x = self.fc(x)
         return x
-    def entropy_loss(self, logits):#定义熵正则化项
+    def entropy_loss(self, logits):
         p = F.softmax(logits, dim=1)
         log_p = F.log_softmax(logits, dim=1)
         entropy = -torch.sum(p * log_p, dim=1).mean()
@@ -184,7 +184,7 @@ class ClassifierResNet(nn.Module):
         deep=False,
     ):
         super(ClassifierResNet, self).__init__()
-        input_channels = 1#修改部分
+        input_channels = 1
 
         self.start = MainRoad(
             input_channels,
@@ -209,9 +209,8 @@ class ClassifierResNet(nn.Module):
                     padding=(kernel_size_list[idx] - 1) // 2,
                 )
             )
-            in_channels = out_channels  # 更新输入通道数
+            in_channels = out_channels  
 
-        # 全局平均池化和全连接层
         self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(channels_list[-1], nb_classes)
 
@@ -222,14 +221,14 @@ class ClassifierResNet(nn.Module):
             x = layer(x)
 
         x = self.global_avg_pool(x)
-        x = x.view(x.size(0), -1)  # 展平
+        x = x.view(x.size(0), -1)  
         x = self.fc(x)
         return x
 class ClassifierResNet18(ClassifierResNet):
     def __init__(self, input_shape, nb_classes, **kwargs):
-        # 经典的ResNet18在每个块中通道数翻倍
+
         channels_list = [64, 64, 128, 128, 256, 256, 512, 512]
-        kernel_size_list = [7, *[3] * 7]  # 根据需要调整核大小
+        kernel_size_list = [7, *[3] * 7]  
         stride_list = [2, 1, 1, 2, 1, 2, 1, 2, 1]
 
         super(ClassifierResNet18, self).__init__(
@@ -237,10 +236,10 @@ class ClassifierResNet18(ClassifierResNet):
             nb_classes=nb_classes,
             channels_list=channels_list,
             kernel_size_list=kernel_size_list,
-            stride_list=stride_list,  # 可能需要调整
-            deep=False,  # ResNet18不使用bottleneck结构
+            stride_list=stride_list,  
+            deep=False,  
         )
-    def entropy_loss(self, logits):#定义熵正则化项
+    def entropy_loss(self, logits):
         p = F.softmax(logits, dim=1)
         log_p = F.log_softmax(logits, dim=1)
         entropy = -torch.sum(p * log_p, dim=1).mean()
@@ -280,9 +279,9 @@ class Classifier_MACNN(nn.Module):
         layers = []
         for i in range(num_blocks):
             layers.append(MACNNBlock(in_channels, out_channels))
-            in_channels = out_channels * 3  # 更新 in_channels 为下一层
+            in_channels = out_channels * 3  
         return nn.Sequential(*layers)
-    def entropy_loss(self, logits):#定义熵正则化项
+    def entropy_loss(self, logits):
         p = F.softmax(logits, dim=1)
         log_p = F.log_softmax(logits, dim=1)
         entropy = -torch.sum(p * log_p, dim=1).mean()
@@ -323,7 +322,6 @@ class MACNNBlock(nn.Module):
         x = self.bn(x)
         x = F.relu(x)
 
-        # 注意力机制
         y = torch.mean(x, 2)
         y = F.relu(self.attention_fc1(y))
         y = torch.sigmoid(self.attention_fc2(y))

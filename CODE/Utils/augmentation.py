@@ -18,11 +18,10 @@ class DefenseModule(nn.Module):
     def __init__(self, device):
         super(DefenseModule, self).__init__()
         self.defense_methods = ['jitter', 'random_zero', 'segment_zero', 'gaussian_noise', 'smooth', 'nothing']
-        self.method_usage_count = {method: 0 for method in self.defense_methods}  # 初始化方法使用计数
+        self.method_usage_count = {method: 0 for method in self.defense_methods}  
         self.device = device
 
     def forward(self, x):
-        # 在每次前向传播时随机选择一种防御方法
         method = random.choice(self.defense_methods)
         self.method_usage_count[method] += 1
         if method == 'jitter':
@@ -39,62 +38,46 @@ class DefenseModule(nn.Module):
             return self.nothing(x)
 
     def jitter(self, x, p=0.75, noise_level=1):
-        # 生成与x形状相同的随机掩码，掩码值根据概率p为True或False
         mask = torch.rand(x.shape, device=self.device) < p
 
-        # 生成与x形状相同的扰动值，扰动值为-0.2或0.2
-        noise = (torch.randint(0, 2, x.shape, dtype=x.dtype, device=self.device) * 2 - 1) # 生成0或1，然后转换为-1或1
-        noise = noise * noise_level  # 缩放扰动值
+        noise = (torch.randint(0, 2, x.shape, dtype=x.dtype, device=self.device) * 2 - 1) 
+        noise = noise * noise_level 
 
-        # 只有当掩码为True时，才将扰动值添加到x上
-        x = (x + noise * mask.float()).to(self.device)  # 确保mask是float类型，以便与x和noise进行运算
+        x = (x + noise * mask.float()).to(self.device)  
         return x
 
     def RandomZero(self, x, p=0.5):
-        # 生成与x形状相同的随机掩码，掩码值根据概率p为True或False
         mask = torch.rand(x.shape, device=self.device) < p
 
-        # 使用掩码将选中的时间戳设置为0
         x_masked = x * (~mask)
         
         return x_masked
 
     def SegmentZero(self, x, total_zero_fraction=0.25, max_segment_fraction=0.05):
-        # 确定总长度和每个段的最大长度
         total_length = x.size(-1)
         max_segment_length = max(int(total_length * max_segment_fraction), 1)
         total_zero_length = int(total_length * total_zero_fraction)
         
-        # 初始化掩码为全1
         mask = torch.ones_like(x)
-        
-        # 确定需要置零的总长度
+
         zeroed_length = 0
         
-        # 当需要置零的长度小于总需置零长度时，继续生成新的段
         while zeroed_length < total_zero_length:
-            # 随机确定本次段的长度，保证不超过最大长度，也不超过剩余需要置零的长度
             segment_length = min(torch.randint(1, max_segment_length + 1, (1,)).item(), total_zero_length - zeroed_length)
-            
-            # 随机确定本次段的起始位置
+
             start = torch.randint(0, total_length - segment_length + 1, (1,)).item()
             
-            # 将选定的段置零
             mask[..., start:start+segment_length] = 0
-            
-            # 更新已置零的长度
+
             zeroed_length += segment_length
         
-        # 应用掩码，将选定段置零
         x_masked = x * mask
         
         return x_masked
 
     def gaussian_noise(self, x, mean=0, std=0.3):
-        # 确定噪声的形状与原始数据相同
         noise = torch.randn_like(x) * std + mean
         
-        # 将噪声加到原始数据上
         x_noisy = x + noise
         
         return x_noisy
@@ -176,7 +159,7 @@ class Classifier_INCEPTION_with_Defense(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense(x)  # DefenseModule 内部选择防御方法
+        x = self.defense(x)  
         x = self.classifier(x)
         return x
 
@@ -187,7 +170,7 @@ class LSTMFCN_with_Defense(nn.Module):
         self.classifier = LSTMFCN(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense(x)  # DefenseModule 内部选择防御方法
+        x = self.defense(x)  
         x = self.classifier(x)
         return x
 
@@ -198,7 +181,7 @@ class ClassifierResNet18_with_Defense(nn.Module):
         self.classifier = ClassifierResNet18(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense(x)  # DefenseModule 内部选择防御方法
+        x = self.defense(x)  
         x = self.classifier(x)
         return x
 
@@ -209,7 +192,7 @@ class Classifier_INCEPTION_with_Defense2(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense(x)  # DefenseModule 内部选择防御方法
+        x = self.defense(x) 
         x = self.defense(x)
         x = self.classifier(x)
         return x
@@ -221,7 +204,7 @@ class Classifier_INCEPTION_with_Defense3(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense(x)  # DefenseModule 内部选择防御方法
+        x = self.defense(x)  
         x = self.defense(x)
         x = self.defense(x)
         x = self.classifier(x)
@@ -234,7 +217,7 @@ class Classifier_INCEPTION_with_Jitter(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.jitter(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.jitter(x)  
         x = self.classifier(x)
         return x
 
@@ -245,7 +228,7 @@ class LSTMFCN_with_Jitter(nn.Module):
         self.classifier = LSTMFCN(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.jitter(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.jitter(x)  
         x = self.classifier(x)
         return x
 
@@ -256,7 +239,7 @@ class ClassifierResNet18_with_Jitter(nn.Module):
         self.classifier = ClassifierResNet18(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.jitter(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.jitter(x)
         x = self.classifier(x)
         return x
 
@@ -267,7 +250,7 @@ class Classifier_INCEPTION_with_RandomZero(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.RandomZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.RandomZero(x) 
         x = self.classifier(x)
         return x
 
@@ -278,7 +261,7 @@ class LSTMFCN_with_RandomZero(nn.Module):
         self.classifier = LSTMFCN(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.RandomZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.RandomZero(x)  
         x = self.classifier(x)
         return x
 
@@ -289,7 +272,7 @@ class ClassifierResNet18_with_RandomZero(nn.Module):
         self.classifier = ClassifierResNet18(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.RandomZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.RandomZero(x)  
         x = self.classifier(x)
         return x
 
@@ -300,7 +283,7 @@ class Classifier_INCEPTION_with_SegmentZero(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.SegmentZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.SegmentZero(x) 
         x = self.classifier(x)
         return x
 
@@ -311,7 +294,7 @@ class LSTMFCN_with_SegmentZero(nn.Module):
         self.classifier = LSTMFCN(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.SegmentZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.SegmentZero(x)  
         x = self.classifier(x)
         return x
 
@@ -322,7 +305,7 @@ class ClassifierResNet18_with_SegmentZero(nn.Module):
         self.classifier = ClassifierResNet18(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.SegmentZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.SegmentZero(x)  
         x = self.classifier(x)
         return x
 
@@ -333,7 +316,7 @@ class Classifier_INCEPTION_with_gaussian_noise(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.gaussian_noise(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.gaussian_noise(x) 
         x = self.classifier(x)
         return x
 
@@ -344,7 +327,7 @@ class LSTMFCN_with_gaussian_noise(nn.Module):
         self.classifier = LSTMFCN(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.gaussian_noise(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.gaussian_noise(x)
         x = self.classifier(x)
         return x
 
@@ -355,7 +338,7 @@ class ClassifierResNet18_with_gaussian_noise(nn.Module):
         self.classifier = ClassifierResNet18(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.gaussian_noise(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.gaussian_noise(x)  
         x = self.classifier(x)
         return x
 
@@ -366,7 +349,7 @@ class Classifier_INCEPTION_with_smooth_time_series(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.smooth_time_series(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.smooth_time_series(x) 
         x = self.classifier(x)
         return x
 
@@ -377,7 +360,7 @@ class LSTMFCN_with_smooth_time_series(nn.Module):
         self.classifier = LSTMFCN(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.smooth_time_series(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.smooth_time_series(x)  
         x = self.classifier(x)
         return x
 
@@ -388,7 +371,7 @@ class ClassifierResNet18_with_smooth_time_series(nn.Module):
         self.classifier = ClassifierResNet18(input_shape=1, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.smooth_time_series(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.smooth_time_series(x)  
         x = self.classifier(x)
         return x
 
@@ -399,7 +382,7 @@ class Classifier_INCEPTION_with_Jitter_logits(nn.Module):
         self.classifier = Classifier_INCEPTION_Logits(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.jitter(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.jitter(x)  
         x = self.classifier(x)
         return x
 
@@ -410,7 +393,7 @@ class Classifier_INCEPTION_with_RandomZero_logits(nn.Module):
         self.classifier = Classifier_INCEPTION_Logits(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.RandomZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.RandomZero(x)  
         x = self.classifier(x)
         return x
 
@@ -421,7 +404,7 @@ class Classifier_INCEPTION_with_SegmentZero_logits(nn.Module):
         self.classifier = Classifier_INCEPTION_Logits(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.SegmentZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.SegmentZero(x)  
         x = self.classifier(x)
         return x
 
@@ -432,7 +415,7 @@ class Classifier_INCEPTION_with_gaussian_noise_logits(nn.Module):
         self.classifier = Classifier_INCEPTION_Logits(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.gaussian_noise(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.gaussian_noise(x) 
         x = self.classifier(x)
         return x
 
@@ -443,7 +426,7 @@ class Classifier_INCEPTION_with_smooth_time_series_logits(nn.Module):
         self.classifier = Classifier_INCEPTION_Logits(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.smooth_time_series(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.smooth_time_series(x)  
         x = self.classifier(x)
         return x
 
@@ -454,7 +437,7 @@ class Classifier_INCEPTION_with_Jitter2(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.jitter(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.jitter(x)  
         x = self.defense.jitter(x)
         x = self.classifier(x)
         return x
@@ -466,7 +449,7 @@ class Classifier_INCEPTION_with_RandomZero2(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.RandomZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.RandomZero(x)  
         x = self.defense.RandomZero(x)
         x = self.classifier(x)
         return x
@@ -478,7 +461,7 @@ class Classifier_INCEPTION_with_gaussian_noise2(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.gaussian_noise(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.gaussian_noise(x) 
         x = self.defense.gaussian_noise(x)
         x = self.classifier(x)
         return x
@@ -490,7 +473,7 @@ class Classifier_INCEPTION_with_SegmentZero2(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.SegmentZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.SegmentZero(x) 
         x = self.defense.SegmentZero(x)
         x = self.classifier(x)
         return x
@@ -502,7 +485,7 @@ class Classifier_INCEPTION_with_smooth_time_series2(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.smooth_time_series(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.smooth_time_series(x)  
         x = self.defense.smooth_time_series(x)
         x = self.classifier(x)
         return x
@@ -514,7 +497,7 @@ class Classifier_INCEPTION_with_JitterRandomZero(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.jitter(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.jitter(x)  
         x = self.defense.RandomZero(x)
         x = self.classifier(x)
         return x
@@ -526,7 +509,7 @@ class Classifier_INCEPTION_with_JitterSegmentZero(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.jitter(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.jitter(x)  
         x = self.defense.SegmentZero(x)
         x = self.classifier(x)
         return x
@@ -538,7 +521,7 @@ class Classifier_INCEPTION_with_Jittergaussian_noise(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.jitter(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.jitter(x)  
         x = self.defense.gaussian_noise(x)
         x = self.classifier(x)
         return x
@@ -550,7 +533,7 @@ class Classifier_INCEPTION_with_Jittersmooth_time_series(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.jitter(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.jitter(x)  
         x = self.defense.smooth_time_series(x)
         x = self.classifier(x)
         return x
@@ -562,7 +545,7 @@ class Classifier_INCEPTION_with_RandomZeroJitter(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.RandomZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.RandomZero(x)  
         x = self.defense.jitter(x)
         x = self.classifier(x)
         return x
@@ -574,7 +557,7 @@ class Classifier_INCEPTION_with_RandomZeroSegmentZero(nn.Module):
         self.classifier = Classifier_INCEPTION(input_shape=input_shape, nb_classes=nb_classes)
 
     def forward(self, x):
-        x = self.defense.RandomZero(x)  # DefenseModule 内部选择防御方法
+        x = self.defense.RandomZero(x)  
         x = self.defense.SegmentZero(x)
         x = self.classifier(x)
         return x
